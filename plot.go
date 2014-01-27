@@ -7,28 +7,22 @@ import (
 	"os"
 )
 
-func PlotOscillogram(name, outpath string, from, to int) error {
-	snd, err := Load(name)
-	if err != nil {
-		return err
-	}
-
+func PlotOscillogram(snd Sounder, outpath string, from, to int) error {
 	// make image
-	height, width := 255, to - from
+	height, width := 255, to-from
 	red := color.RGBA{255, 0, 0, 255}
 	image := image.NewGray(image.Rect(0, 0, width, height*2))
 
 	// plot each point on image + a central red line at 0
-	var amp float32
+	var amp float64
 	for t := from; t < to; t++ {
-		amp = float32(height) * (snd.GetChannel(t, 0) * 2)
+		amp = float64(height) * (snd.Get(0, t) * 2)
 		image.Set(t, int(amp), color.White)
 
 		image.Set(t, height, red)
 	}
 
-	var of *os.File
-	of, err = os.Create(outpath)
+	of, err := os.Create(outpath)
 	if err != nil {
 		return err
 	}

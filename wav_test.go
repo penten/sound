@@ -44,8 +44,18 @@ func TestLoad(t *testing.T) {
 func TestSamples(t *testing.T) {
 	wav440 := path.Join("testdata", "440.wav")
 
-	_, err := LoadWav(wav440)
+	w, err := LoadWav(wav440)
 	if err != nil {
 		t.Error("Could not open file")
+	}
+
+	if w.TotalSamples() != 441000 { // 10 seconds at 44100sps
+		t.Error("Incorrect number of samples")
+	}
+
+	for i := 0; i < w.TotalSamples(); i += 10 {
+		if w.Get(0, i) > 1.0 || w.Get(0, i) < 0.0 {
+			t.Error("Sample out of bounds")
+		}
 	}
 }

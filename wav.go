@@ -25,6 +25,8 @@ type Wav struct {
 	subchunk2ID [4]byte
 	dataSize    uint32
 	Data        []byte
+
+	Samples [][]float64
 }
 
 func LoadWav(name string) (*Wav, error) {
@@ -76,6 +78,8 @@ func LoadWav(name string) (*Wav, error) {
 
 	file.Close()
 
+	w.loadSamples()
+
 	return &w, nil
 }
 
@@ -91,41 +95,47 @@ func (w *Wav) Channels() int {
 	return int(w.numChannels)
 }
 
-func (w *Wav) Get(t int) float32 {
-	// Returns an amplitude between 0 and 1
-
-	// TODO: error checking
-	var total float32
-
-	total = 0
-	for c := 0; c < w.Channels(); c++ {
-		total += w.GetChannel(t, c)
-	}
-	return total / float32(w.Channels())
-}
-
-func (w *Wav) GetChannel(t int, c int) float32 {
-	// Returns an amplitude between 0 and 1
-
-	// TODO: error checking
-	// TODO: Move the amplitude decoding to Load?
-	var amp, min, max int
-
+func (w *Wav) loadSamples() {
 	width := int(w.bitsPerSample) / 8
-	offset := t * width * (w.Channels() + c)
-	b := w.Data[offset : offset+width]
+	c, s := w.Channels(), w.TotalSamples()
+
+	// Create slices to hold the samples (channel x time)
+	w.Samples = make([][]float64, c)
+	for i := 0; i < c; i++ {
+		w.Samples[i] = make([]float64, s)
+	}
 
 	// PCM wav can either be an 8 bit unsigned or 16 bit signed integer
+	var min, max int
 	if width == 1 {
-		amp = int(b[0])
 		min, max = 0, 255
 	} else {
-		var s int16
-		binary.Read(bytes.NewReader(b), binary.LittleEndian, &s)
-		amp = int(s)
 		min, max = -32768, 32767
 	}
 
-	return float32(amp-min) / float32(max-min)
+	// Convert from raw bytes to amplitudes, between 0 and 1
+	var amp, offset int 
+	var b []byte
+	for i := 0; i < s; i ++ {
+		for j := 0; j < c; j++ {
+			b = w.Data[offset : offset + width]
+			if width == 1 {
+				amp = int(b[0])
+			} else {
+				var s int16
+				binary.Read(bytes.NewReader(b), binary.LittleEndian, &s)
+				amp = int(s)
+			}
+			w.Samples[j][i] = float64(amp-min) / float64(max-min)
+			offset += width
+		}
+	}
 }
 
+func (w *Wav) Get(c, t int) float64 {
+	return w.Samples[c][t]
+}
+
+func (w *Wav) GetSlice(c, from, to int) []float64 {
+	return w.Samples[c][from:to]	
+}
