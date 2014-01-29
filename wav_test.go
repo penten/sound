@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestBad(t *testing.T) {
+func TestWavBad(t *testing.T) {
 	bad := path.Join("testdata", "bad.wav")
 	notfound := path.Join("testdata", "notfound.wav")
 
@@ -20,7 +20,7 @@ func TestBad(t *testing.T) {
 	}
 }
 
-func TestLoad(t *testing.T) {
+func TestWavLoad(t *testing.T) {
 	wav440 := path.Join("testdata", "440.wav")
 
 	w, err := LoadWav(wav440)
@@ -41,7 +41,7 @@ func TestLoad(t *testing.T) {
 	}
 }
 
-func TestSamples(t *testing.T) {
+func TestWavSamples(t *testing.T) {
 	wav440 := path.Join("testdata", "440.wav")
 
 	w, err := LoadWav(wav440)
@@ -58,4 +58,37 @@ func TestSamples(t *testing.T) {
 			t.Error("Sample out of bounds")
 		}
 	}
+}
+
+func TestDFT(t *testing.T) {
+	wav440 := path.Join("testdata", "440.wav")
+
+	w, err := LoadWav(wav440)
+	if err != nil {
+		t.Error("Could not open file")
+	}
+
+	d, err := dft(w, 0, w.TotalSamples()+1)
+	if err == nil {
+		t.Error("Should error when out of bounds")
+	}
+
+	d, err = dft(w, 0, w.TotalSamples())
+
+	if len(d) != w.TotalSamples() / 441 {
+		t.Error("Time length of DFT incorrect:", len(d))
+	}
+
+	if len(d[0]) != 220 {
+		t.Error("Frequency precision of DFT incorrect:", len(d[0]))
+	}
+
+	for _, amp := range d[0] {
+		if amp > 1.0 || amp < 0.0 {
+			t.Error("Amplitude out of bounds", amp)
+			break
+		}
+	}
+
+	// TODO: add test + functions to detect dominant frequency
 }
