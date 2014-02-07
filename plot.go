@@ -10,6 +10,8 @@ import (
 	"math/cmplx"
 )
 
+const windowSize = 0.01
+
 func PlotOscillogram(snd Sounder, outpath string, from, to int) error {
 	// make image
 	height, width := 255, to-from
@@ -43,13 +45,17 @@ func PlotSpectogram(snd Sounder, outpath string, from, to int) error {
 	height, width := len(d[0]), len(d)
 	image := image.NewGray(image.Rect(0, 0, width, height))
 
+	// find maximum value in DFT
+	max := maxAmp(d)
+	max = math.Log(1+max)
+
 	// plot each point on image
+	// TODO: flip the display to put lowest frequencies at bottom of image
 	for i, col := range d {
 		for j, amp := range col {
-			// TODO: is there a color.Gray?
-			// TODO: currently we can only see a few frequencies with the highest
-			// amplitudes. Using color will help. (use log amplitudes otherwise)
-			brightness := uint8(float64(255) * amp)
+			// Log(Xk+1) will give us a positive value
+			// Using log here allows low amplitudes to be more visible on the graph
+			brightness := uint8(float64(255) * math.Log(1+amp) / max)
 			image.Set(i, j, color.RGBA{brightness, brightness, brightness, 255})
 		}
 	}
@@ -70,7 +76,7 @@ func dft(snd Sounder, from, to int) ([][]float64, error) {
 	// at a 40ms window length. At 44100sps, this gives us 1764 samples per window
 	// frequency range is from 2/N to 1 cycles per sample == 22050Hz to 25Hz
 	// currently using 10ms window
-	window := int(float64(snd.SampleRate()) * 0.01)
+	window := int(float64(snd.SampleRate()) * windowSize)
 	length := (to-from) / window
 	var dft [][]float64
 
@@ -78,23 +84,6 @@ func dft(snd Sounder, from, to int) ([][]float64, error) {
 	dft = make([][]float64, length)
 	for t := 0; t < length; t++ {
 		dft[t] = dftWindow(snd.GetSlice(0, t*window, (t+1)*window))
-	}
-
-	// tmp: find maximum and reduce all to 0.0-1.0 range
-	// awful code to be moved to dftWindow
-	max := 0.0
-	for _, col := range dft {
-		for _, amp := range col {
-			if amp > max {
-				max = amp
-			}
-		}
-	}
-
-	for t, col := range dft {
-		for freq, amp := range col {
-			dft[t][freq] = amp/max
-		}
 	}
 
 	return dft, nil
@@ -116,4 +105,32 @@ func dftWindow(xj []float64) []float64 {
 	}
 
 	return Xj
+}
+
+func maxAmp(d [][]float64) float64 {
+	max := 0.0
+	for _, col := range d {
+		for _, amp := range col {
+			if amp > max {
+				max = amp
+			}
+		}
+	}
+	return max
+}
+
+func dominantFrequency(Xj []float64) int {
+	max := 0.0
+	maxi := 0
+	for k, amp := range Xj {
+		if amp > max {
+			max = amp
+			maxi = k
+		}
+	}
+
+	// X[k] corresponds to the amplitude of e^{i2\pi kn/N}
+	// we have one oscillation every time the exponent goes through i2pi
+	// so the frequency is k per window
+	return int(float64(maxi) / windowSize)
 }

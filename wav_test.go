@@ -83,12 +83,11 @@ func TestDFT(t *testing.T) {
 		t.Error("Frequency precision of DFT incorrect:", len(d[0]))
 	}
 
-	for _, amp := range d[0] {
-		if amp > 1.0 || amp < 0.0 {
-			t.Error("Amplitude out of bounds", amp)
+	// TODO: code seems to be correct, may be the wav file is not
+	for i, _ := range d {
+		if(dominantFrequency(d[i]) != 440) {
+			t.Error("Dominant frequency is incorrect:", dominantFrequency(d[i]))
 			break
 		}
 	}
-
-	// TODO: add test + functions to detect dominant frequency
 }
