@@ -12,7 +12,7 @@ import (
 
 const windowSize = 0.01
 
-func PlotOscillogram(snd Sounder, outpath string, from, to int) error {
+func PlotOscillogram(sr Reader, outpath string, from, to int) error {
 	// make image
 	height, width := 255, to-from
 	gray := color.RGBA{255, 0, 0, 255}
@@ -21,7 +21,7 @@ func PlotOscillogram(snd Sounder, outpath string, from, to int) error {
 	// plot each point on image + a central gray line at 0
 	var amp float64
 	for t := from; t < to; t++ {
-		amp = float64(height) * (snd.Get(0, t) * 2)
+		amp = float64(height) * (sr.Get(0, t) * 2)
 		image.Set(t, int(amp), color.White)
 
 		image.Set(t, height, gray)
@@ -35,8 +35,8 @@ func PlotOscillogram(snd Sounder, outpath string, from, to int) error {
 	return png.Encode(of, image)
 }
 
-func PlotSpectogram(snd Sounder, outpath string, from, to int) error {
-	d, err := dft(snd, from, to)
+func PlotSpectogram(sr Reader, outpath string, from, to int) error {
+	d, err := dft(sr, from, to)
 	if err != nil {
 		return err
 	}
@@ -67,22 +67,22 @@ func PlotSpectogram(snd Sounder, outpath string, from, to int) error {
 	return png.Encode(of, image)
 }
 
-func dft(snd Sounder, from, to int) ([][]float64, error) {
-	if from < 0 || to > snd.TotalSamples() {
+func dft(sr Reader, from, to int) ([][]float64, error) {
+	if from < 0 || to > sr.TotalSamples() {
 		return nil, errors.New("Out of bounds")
 	}
 
 	// at a 40ms window length. At 44100sps, giving us 1764 samples per window
 	// frequency range is from 2/N to 1 cycles per sample == 22050Hz to 25Hz
 	// currently using 10ms window
-	window := int(float64(snd.SampleRate()) * windowSize)
+	window := int(float64(sr.SampleRate()) * windowSize)
 	length := (to - from) / window
 	var dft [][]float64
 
 	// create dft slice (time x frequency)
 	dft = make([][]float64, length)
 	for t := 0; t < length; t++ {
-		dft[t] = dftWindow(snd.GetSlice(0, t*window, (t+1)*window))
+		dft[t] = dftWindow(sr.GetSlice(0, t*window, (t+1)*window))
 	}
 
 	return dft, nil
@@ -98,7 +98,8 @@ func dftWindow(xj []float64) []float64 {
 	for k := 1; k < N/2; k++ {
 		Xk := complex(0, 0)
 		for n := 0; n < N; n++ {
-			Xk += complex(xj[n], 0) * cmplx.Exp(complex(0, float64(-2.0*math.Pi*float64(k)*float64(n)/float64(N))))
+			exp := float64(-2.0 * math.Pi * float64(k) * float64(n) / float64(N))
+			Xk += complex(xj[n], 0) * cmplx.Exp(complex(0, exp))
 		}
 		Xj[k] = cmplx.Abs(Xk)
 	}
@@ -131,5 +132,5 @@ func dominantFrequency(Xj []float64) int {
 	// X[k] corresponds to the amplitude of e^{i2\pi kn/N}
 	// we have one oscillation every time the exponent goes through i2pi
 	// so the frequency is k per window
-	return maxi
+	return int(float64(maxi) / windowSize)
 }
