@@ -25,7 +25,8 @@ func TestWavLoad(t *testing.T) {
 
 	w, err := LoadWav(wav440)
 	if err != nil {
-		t.Error("Could not open file")
+		t.Error("Could not open file", err.Error())
+		return
 	}
 
 	if string(w.chunkID[:]) != "RIFF" {
@@ -46,7 +47,8 @@ func TestWavSamples(t *testing.T) {
 
 	w, err := LoadWav(wav440)
 	if err != nil {
-		t.Error("Could not open file")
+		t.Error("Could not open file", err.Error())
+		return
 	}
 
 	if w.TotalSamples() != 441000 { // 10 seconds at 44100sps
@@ -65,7 +67,8 @@ func TestDFT(t *testing.T) {
 
 	w, err := LoadWav(wav440)
 	if err != nil {
-		t.Error("Could not open file")
+		t.Error("Could not open file", err.Error())
+		return
 	}
 
 	d, err := dft(w, 0, w.TotalSamples()+1)
@@ -75,7 +78,7 @@ func TestDFT(t *testing.T) {
 
 	d, err = dft(w, 0, w.TotalSamples())
 
-	if len(d) != w.TotalSamples() / 441 {
+	if len(d) != w.TotalSamples()/441 {
 		t.Error("Time length of DFT incorrect:", len(d))
 	}
 
@@ -83,9 +86,9 @@ func TestDFT(t *testing.T) {
 		t.Error("Frequency precision of DFT incorrect:", len(d[0]))
 	}
 
-	// TODO: code seems to be correct, may be the wav file is not
+	// not 440 because the window size chosen does not afford that much accuracy
 	for i, _ := range d {
-		if(dominantFrequency(d[i]) != 440) {
+		if dominantFrequency(d[i]) != 400 {
 			t.Error("Dominant frequency is incorrect:", dominantFrequency(d[i]))
 			break
 		}

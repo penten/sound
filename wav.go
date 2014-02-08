@@ -114,11 +114,11 @@ func (w *Wav) loadSamples() {
 	}
 
 	// Convert from raw bytes to amplitudes, between 0 and 1
-	var amp, offset int 
+	var amp, offset int
 	var b []byte
-	for i := 0; i < s; i ++ {
+	for i := 0; i < s; i++ {
 		for j := 0; j < c; j++ {
-			b = w.Data[offset : offset + width]
+			b = w.Data[offset : offset+width]
 			if width == 1 {
 				amp = int(b[0])
 			} else {
@@ -137,5 +137,5 @@ func (w *Wav) Get(c, t int) float64 {
 }
 
 func (w *Wav) GetSlice(c, from, to int) []float64 {
-	return w.Samples[c][from:to]	
+	return w.Samples[c][from:to]
 }
