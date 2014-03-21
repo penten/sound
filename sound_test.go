@@ -42,6 +42,18 @@ func TestWavLoad(t *testing.T) {
 	}
 }
 
+func TestWavCreate(t *testing.T) {
+	w := CreateWav(100)
+
+	if w.TotalSamples() != 100 {
+		t.Error("Wrong number of samples", w.TotalSamples())
+	}
+
+	if w.Channels() != 2 {
+		t.Error("Default number of channels should be 2")
+	}
+}
+
 func TestWavSamples(t *testing.T) {
 	wav440 := path.Join("testdata", "440.wav")
 

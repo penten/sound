@@ -139,3 +139,42 @@ func (w *Wav) Get(c, t int) float64 {
 func (w *Wav) GetSlice(c, from, to int) []float64 {
 	return w.Samples[c][from:to]
 }
+
+func CreateWav(s int) *Wav {
+	c, bitrate, width := 2, 44100, 16
+	sub2size := uint32(s * c * 2)
+
+	samples := make([][]float64, c)
+	for i := 0; i < c; i++ {
+		samples[i] = make([]float64, s)
+	}
+
+	return &Wav{
+		[4]byte{'R', 'I', 'F', 'F'},
+		36 + sub2size,
+		[4]byte{'W', 'A', 'V', 'E'},
+
+		[4]byte{'f', 'm', 't', ' '},
+		uint32(width),
+		1,
+		uint16(c),
+		uint32(bitrate),
+		uint32(bitrate * 2 * c),
+		uint16(c * bitrate / 8),
+		uint16(width),
+
+		[4]byte{'d', 'a', 't', 'a'},
+		sub2size,
+		nil,
+
+		samples,
+	}
+}
+
+func (w *Wav) Save(name string) error {
+	return nil
+}
+
+func (w *Wav) Set(c, t int, amp float64) {
+	w.Samples[c][t] = amp
+}

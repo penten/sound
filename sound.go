@@ -15,7 +15,7 @@ type Reader interface {
 
 type Writer interface {
 	Reader
-	Save() error
+	Save(string) error
 	Set(int, int, float64)
 }
 
@@ -25,11 +25,3 @@ func Load(name string) (Reader, error) {
 	}
 	return nil, errors.New("Unsupported sound format")
 }
-
-func Generate(sw Writer, gen func(int) float64) {
-	// Use the generator function to fill in the sound data at each sample
-
-	sw.Save()
-}
-
-// TODO: godoc compatible documentation
